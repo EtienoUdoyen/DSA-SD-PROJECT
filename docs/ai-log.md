@@ -11,9 +11,10 @@ Every time you give an AI tool a significant prompt, add an entry. Three lines e
 - **What was wrong (or "nothing"):**
 
 ### Prompt 2:
-- **What I asked:**
-- **What came back:**
-- **What was wrong (or "nothing"):**
+- **What I asked:**  The organizer Creates, edits and publishes events and ticket tiers. The attendee browses, books, pays, cancels, joins waitlists and the staff Checks people in at the door
+- **What came back:** merge sort was stable, moidfied about six files; the eventSearch.test.js, inventory.test.js, validation.js, inventory.js, eventSearch.js, and build-2.md, npm tests passes; 147 tests, git diff -- check is stated clean, So4 code was written in, npm tests showed a lot of green responses
+tests 147, suites 34, pass 147, fail 0, cancelled 0, skipped 0, todo 0, duration_ms 16263.312
+- **What was wrong (or "nothing"):** All codes passed including the REST API(memory and SQLite repository); SO2 create an event, SO3 addd ticket tiers, SO4 publish and unpublish, SO5 search, filter and sort, SO6 book tickets, SO7 pay for a booking (mock payment), cancel an unpaid booking, booking state machine, event search, filtering, sorting, HTTP app, inventory and others.
 
 ## Build 3
 
