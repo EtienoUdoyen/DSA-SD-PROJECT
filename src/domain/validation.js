@@ -19,12 +19,29 @@ export function requireWholeNumber(value, field, min) {
   return value;
 }
 
-export function requireDate(value, field) {
-  const date = new Date(value);
-  if (value === undefined || value === null || Number.isNaN(date.getTime())) {
-    throw new DomainError('VALIDATION', `${field} must be a valid date`);
+export function parseIsoDate(value, field) {
+  const dateOnly = typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+  const dateTime =
+    typeof value === 'string' &&
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})$/.test(value);
+
+  if (!dateOnly && !dateTime) {
+    throw new DomainError('VALIDATION', `${field} must be a valid ISO date`);
   }
-  return date.toISOString();
+
+  const date = new Date(value);
+  const datePart = value.slice(0, 10);
+  if (
+    Number.isNaN(date.getTime()) ||
+    new Date(`${datePart}T00:00:00.000Z`).toISOString().slice(0, 10) !== datePart
+  ) {
+    throw new DomainError('VALIDATION', `${field} must be a valid ISO date`);
+  }
+  return date;
+}
+
+export function requireDate(value, field) {
+  return parseIsoDate(value, field).toISOString();
 }
 
 export function requireQuantity(quantity) {
