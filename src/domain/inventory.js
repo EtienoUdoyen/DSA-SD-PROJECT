@@ -86,6 +86,12 @@ export function publishEvent(store, eventId) {
   return event;
 }
 
+export function unpublishEvent(store, eventId) {
+  const event = getEvent(store, eventId);
+  event.status = 'draft';
+  return event;
+}
+
 // What the public event list is built from. Drafts are hidden unless asked for.
 export function listEventSummaries(store, { publishedOnly = true } = {}) {
   return [...store.events.values()]
