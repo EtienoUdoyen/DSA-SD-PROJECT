@@ -19,9 +19,21 @@ tests 147, suites 34, pass 147, fail 0, cancelled 0, skipped 0, todo 0, duration
 ## Build 3
 
 ### Prompt 1: Build 3 prompt (docs/build-3.md)
-- **What I asked:** Add the architecture diagrams, booking state machine, Node HTTP router/server, configuration, startup script, and tests.
+- **What I asked:** Add the architecture diagrams, booking state machine, Node HTTP router/server, configuration, startup script, and tests. 
+
+I gave similar commands so there was no file changes
+
 - **What came back:** A layered architecture document, explicit booking transitions, static-file HTTP server, `/health` route, startup configuration, and `node:test` coverage.
+
+The requested Build 3 work is already present, so no file changes were made. The architecture diagrams, booking state machine, HTTP router/server, configuration, start script, and requested tests are in architecture.md, bookingStateMachine.js, app.js, router.js, config.js, server.js, package.json, and the corresponding tests.
+Ran terminal command: npm test
+`npm test` passed in PowerShell: **147 tests passed, 0 failed** (34 suites). This includes the booking state-machine, router, and real `/health` HTTP tests.
+
 - **What was wrong (or "nothing"):** The first server draft relied on an implicit response/request property for HEAD handling and had redundant error-status logic; both were simplified. Added a regression test proving static requests cannot escape `public/`.
+
+Powershell was unavailable and my VScode test disovery has no registered test controller so test run wasn't successful at first. I had to relaunch powershell to make the test run successful.
+
+Unable to load schema from 'https://www.schemastore.org/package': Not Found. I also had this error.
 
 ## Build 4
 
