@@ -39,9 +39,18 @@ Unable to load schema from 'https://www.schemastore.org/package': Not Found. I a
 
 ### Prompt 1: Build 4 prompt (docs/build-4.md)
 - **What I asked:** The Build 4 prompt: an in-memory repository, event and booking services, a mock payment gateway, the API routes, `docs/api-examples.md` and API tests that start the real server.
+
+Build a working REST API that keeps its data in memory.
 - **What came back:** `src/repositories/memory.js`, `src/services/eventService.js`, `src/services/bookingService.js`, `src/lib/mockPaymentGateway.js`, `src/http/routes.js`, wiring in `src/server.js`, an error-code-to-status map in `src/http/app.js`, `docs/api-examples.md` and `test/api.test.js`.
+
+No files changed. The requested memory repository, services, mock gateway, REST routes, API examples, and API tests already exist in memory.js, eventService.js, bookingService.js, mockPaymentGateway.js, routes.js, api-examples.md, and api.test.js.
+I ran npm test. It passed: 147 tests, 0 failures, including the API tests against both memory and SQLite repositories.
 - **What was wrong (or "nothing"):** In the Build 3 code, every DomainError came back as 400, so `SOLD_OUT` and `NOT_FOUND` would have had the wrong status; added one code-to-status map in `app.js`. The validation helpers lived privately inside `inventory.js`, so reusing them meant moving them to `src/domain/validation.js` rather than copying. Known gap left on purpose: two bookings at the same moment can both take the last seat (Build 5). *(My own review: add what you find when you read the code.)*
+
+npm test. It passed: 147 tests, 0 failures, including the API tests against both memory and SQLite repositories.
 - **Rules I was unsure about:** whether `venue` is required (kept optional, as in Build 2); whether a stranger paying someone else's booking should get 403 or 404 (chose 403 `FORBIDDEN`); added `unpublish`, `GET /api/events/:id` and `GET /api/bookings/:reference`, which the prompt did not list but S04 and the curl examples need.
+
+The prompt asks for in-memory data, while the existing Build 5 setup makes npm start use SQLite. The API tests do exercise the memory repository, but the later-build startup behavior left unchanged.
 
 ## Build 5
 
