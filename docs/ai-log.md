@@ -56,13 +56,20 @@ The prompt asks for in-memory data, while the existing Build 5 setup makes npm s
 
 ### Prompt 1: move to SQLite and reproduce the problem (docs/build-5.md)
 - **What I asked:** `src/db/schema.sql` and `src/db/connection.js` on `node:sqlite`, a SQLite repository with the same methods as `memory.js`, `scripts/seed.js`, and `scripts/oversell-demo.js` firing 50 bookings at the last seat with `Promise.all`.
+
+Move the API to persistent SQLite storage with schema constraints, a parameterized repository, a seed script, and a 50-person last-seat demo. Then fix overselling with one atomic database update, add a regression test, and show the before-and-after results.
 - **What came back:** The schema (users, events, ticket_tiers, bookings with PRIMARY KEY, FOREIGN KEY, UNIQUE and CHECK, including `CHECK (sold >= 0 AND sold <= capacity)`), `src/repositories/sqlite.js` with prepared `?` statements, the seed and oversell scripts, and `seed`/`oversell` in `package.json`.
+
+The project had the SQLite schema, connection, repository, seed script, package commands, and oversell test. The booking service reserves seats through a conditional atomic update and returns SOLD_OUT when no row changes. The demo showed 50 successes and 59 bookings for 10 seats before the fix, and 1 success, 49 SOLD_OUT, and 10 bookings for 10 seats after.
+scripts/oversell-demo.js and docs/ai-log.md was changed.
 - **What was wrong (or "nothing"):** The CHECK on `sold` did **not** catch the bug: every racing request saved `sold = 9 + 1 = 10`, so the column looked right while 50 bookings existed for 1 seat (a lost update). The demo had to count rows in `bookings`, not just read `sold`. SQLite also ignores FOREIGN KEY unless `PRAGMA foreign_keys = ON` is set on every connection. There is no signup yet, so bookings would fail their FOREIGN KEY on `users`; the repository inserts a bare user row the first time an id is seen (`INSERT OR IGNORE`).
+
+The demo used Promise.allSettled instead of the prompt’s explicit Promise.all, so I changed it to Promise.all with per-request outcome handlers. The atomic reservation and regression test were already present and passed validation.
 - **Rules I was unsure about:** whether `users` should exist before Build 7 (kept it, with name, email and role empty for now).
 
 ### Prompt 2: fix it
 - **What I asked:** Reserve seats with one atomic UPDATE and use the changed-row count; add `test/oversell.test.js`; show the demo before and after.
 - **What came back:** `reserveSeats` and `releaseSeats` in both repositories, `bookingService.book` using `reserveSeats` instead of read-check-write, `cancel` using `releaseSeats`, and the oversell test. Demo before: 50 succeeded, 59 bookings for 10 seats. After: 1 succeeded, 49 `SOLD_OUT`, 10 bookings for 10 seats.
 - **Why a lock variable or a second check does not work:** A second check reads the same stale number, because every request can read before any of them writes; checking twice only makes the gap smaller, not gone. A lock variable lives in one Node process, so a second server process (or a script writing to the same database) never sees it, and a forgotten unlock after an error blocks every later booking.
-- **What was wrong (or "nothing"):** If saving the booking failed after the seat was taken, the seat stayed taken forever; added a `releaseSeats` in a `catch`. I checked that the test fails without the fix by putting the Build 4 lines back: all 4 oversell tests failed, then passed again with the fix. Known gap for Build 8: two cancel requests at the same moment could both pass the status check (refunds must release seats exactly once).
+- **What was wrong (or "nothing"):** If saving the booking failed after the seat was taken, the seat stayed taken forever; added a `releaseSeats` in a `catch`. The demo used `Promise.allSettled` rather than the prompt's explicit `Promise.all`, so changed it to `Promise.all` with per-request outcome handlers. I checked that the test fails without the fix by putting the Build 4 lines back: all 4 oversell tests failed, then passed again with the fix. Known gap for Build 8: two cancel requests at the same moment could both pass the status check (refunds must release seats exactly once).
 
