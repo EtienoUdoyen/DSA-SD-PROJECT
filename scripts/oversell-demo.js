@@ -67,8 +67,13 @@ async function run(label, chooseBook) {
   const before = await repository.findTier(tier.id);
 
   // Everyone presses Buy at the same moment.
-  const results = await Promise.allSettled(
-    Array.from({ length: ATTENDEES }, (_, i) => book(`attendee-${i + 1}`, { tierId: tier.id, quantity: 1 })),
+  const results = await Promise.all(
+    Array.from({ length: ATTENDEES }, (_, i) =>
+      book(`attendee-${i + 1}`, { tierId: tier.id, quantity: 1 }).then(
+        (value) => ({ status: 'fulfilled', value }),
+        (reason) => ({ status: 'rejected', reason }),
+      ),
+    ),
   );
 
   const succeeded = results.filter((result) => result.status === 'fulfilled').length;
