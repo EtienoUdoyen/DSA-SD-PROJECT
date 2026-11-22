@@ -73,3 +73,18 @@ The demo used Promise.allSettled instead of the prompt’s explicit Promise.all,
 - **Why a lock variable or a second check does not work:** A second check reads the same stale number, because every request can read before any of them writes; checking twice only makes the gap smaller, not gone. A lock variable lives in one Node process, so a second server process (or a script writing to the same database) never sees it, and a forgotten unlock after an error blocks every later booking.
 - **What was wrong (or "nothing"):** If saving the booking failed after the seat was taken, the seat stayed taken forever; added a `releaseSeats` in a `catch`. The demo used `Promise.allSettled` rather than the prompt's explicit `Promise.all`, so changed it to `Promise.all` with per-request outcome handlers. I checked that the test fails without the fix by putting the Build 4 lines back: all 4 oversell tests failed, then passed again with the fix. Known gap for Build 8: two cancel requests at the same moment could both pass the status check (refunds must release seats exactly once).
 
+## Build 6
+
+### Prompt 1: frontend on mock data
+- **What I asked:** Build the browse and event pages, safe DOM helpers, a mock API seam, filtering, ticket selection, checkout countdown and retryable mock payment.
+
+Build the Build 6 website using plain HTML, CSS, and browser ES modules: browse and filter events, view ticket tiers, choose a quantity, and check out with a countdown and mock payment. Keep data access behind api.js, build DOM safely with textContent, and label all form controls.
+- **What came back:** The requested pages and mock API were already present. The event listing returned full event details instead of the real API's summary shape, and sort ties did not use the API's title/id tie-breaker.
+
+The requested pages, styles, DOM helper, mock data, and mock API were already present. The site supported event search and filters, sold-out tiers, quantity limits, checkout countdown, and mock payment.
+Files changed were six inluding public/index.html, public/js/api.js, public/js/mockData.js, public/js/pages/home.js, test/mockApi.test.js and docs/ai-log.md.
+- **What was wrong (or "nothing"), and what I changed:** Changed `listEvents` to return API-shaped summaries, `getEvent` to return API-shaped detail, added deterministic tie-breaking and API-style validation, and aligned mock booking references/timestamps and payment transitions with the real API. Adapted home cards, changed the maximum-price input step to allow cent-accurate naira values, and added API contract/payment retry tests.
+
+The mock event list returned full event details rather than the real API’s summary shape; mock booking metadata and some validation/payment behavior also differed from the API. I aligned those responses and behaviors, added deterministic sort tie-breaking, adjusted the maximum-price input for cent precision, and added mock API tests. All 149 tests passed, and I verified the booking and retry flows in the browser.
+
+Rule I was unsure about: The prompt didn’t specify how long seats are held, so I used a 10-minute mock countdown.

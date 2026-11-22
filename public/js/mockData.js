@@ -9,6 +9,7 @@ function tier(id, name, priceCents, capacity, sold) {
 export const mockEvents = [
   {
     id: 'evt-lagos-tech',
+    organizerId: 'org-1',
     title: 'Lagos Tech Meetup',
     city: 'Lagos',
     venue: 'Landmark Centre',
@@ -18,6 +19,7 @@ export const mockEvents = [
   },
   {
     id: 'evt-abuja-jazz',
+    organizerId: 'org-1',
     title: 'Abuja Jazz Night',
     city: 'Abuja',
     venue: 'Transcorp Hilton',
@@ -27,6 +29,7 @@ export const mockEvents = [
   },
   {
     id: 'evt-ibadan-food',
+    organizerId: 'org-1',
     title: 'Ibadan Food Fair',
     city: 'Ibadan',
     venue: 'Cultural Centre Mokola',
@@ -36,6 +39,7 @@ export const mockEvents = [
   },
   {
     id: 'evt-lagos-comedy',
+    organizerId: 'org-1',
     title: 'Lagos Comedy Night',
     city: 'Lagos',
     venue: 'Muson Centre',
@@ -45,6 +49,7 @@ export const mockEvents = [
   },
   {
     id: 'evt-pharcyde-sold-out',
+    organizerId: 'org-1',
     title: 'Sold Out Live Concert',
     city: 'Port Harcourt',
     venue: 'Hotel Presidential',

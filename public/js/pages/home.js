@@ -19,16 +19,17 @@ function readFilters() {
 }
 
 function card(event) {
-  const prices = event.tiers.map((t) => t.priceCents);
-  const left = event.tiers.reduce((sum, t) => sum + t.seatsLeft, 0);
   return el('li', { class: 'card' }, [
     el('h2', {}, [el('a', { href: `/event?id=${encodeURIComponent(event.id)}`, text: event.title })]),
     el('p', { class: 'meta', text: `${event.city} · ${event.venue}` }),
     el('p', { class: 'meta', text: formatDate(event.startsAt) }),
-    el('p', { class: 'price', text: `From ${formatMoney(Math.min(...prices))}` }),
-    left === 0
+    el('p', {
+      class: 'price',
+      text: event.minPriceCents === null ? 'No tickets available' : `From ${formatMoney(event.minPriceCents)}`,
+    }),
+    event.seatsLeft === 0
       ? el('p', { class: 'badge badge-soldout', text: 'Sold out' })
-      : el('p', { class: 'meta', text: `${left} seats left` }),
+      : el('p', { class: 'meta', text: `${event.seatsLeft} seats left` }),
   ]);
 }
 
