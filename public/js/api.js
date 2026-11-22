@@ -7,6 +7,7 @@ import { mockEvents } from './mockData.js';
 const DELAY_MS = 300;          // pretend network time, so pages need a loading state
 const HOLD_SECONDS = 10 * 60;  // how long a pending booking holds its seats (mock only)
 const SUCCESS_TOKEN = 'tok_success';
+const REFERENCE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 // A working copy, so bookings change what the pages see.
 const events = structuredClone(mockEvents);
@@ -27,30 +28,69 @@ function copy(value) {
 }
 
 function lowestPrice(event) {
-  return Math.min(...event.tiers.map((t) => t.priceCents));
+  return event.tiers.length ? Math.min(...event.tiers.map((tier) => tier.priceCents)) : null;
 }
 
 function seatsLeft(event) {
   return event.tiers.reduce((sum, t) => sum + t.seatsLeft, 0);
 }
 
+function summarize(event) {
+  return {
+    id: event.id,
+    title: event.title,
+    city: event.city,
+    venue: event.venue,
+    startsAt: event.startsAt,
+    status: event.status,
+    tierCount: event.tiers.length,
+    minPriceCents: lowestPrice(event),
+    seatsLeft: seatsLeft(event),
+  };
+}
+
+const compareText = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+const byTitleThenId = (a, b) =>
+  compareText(a.title.toLowerCase(), b.title.toLowerCase()) || compareText(a.id, b.id);
+
+function nextReference() {
+  let value = ++bookingCounter;
+  let reference = '';
+  for (let index = 0; index < 8; index += 1) {
+    reference = REFERENCE_ALPHABET[value % REFERENCE_ALPHABET.length] + reference;
+    value = Math.floor(value / REFERENCE_ALPHABET.length);
+  }
+  return reference;
+}
+
 // GET /api/events -> { events: [...] }
 export async function listEvents({ q = '', city = '', maxPriceCents, onlyAvailable = false, sort = 'date' } = {}) {
   await wait();
+  if (maxPriceCents !== undefined && (!Number.isInteger(maxPriceCents) || maxPriceCents < 0)) {
+    throw apiError(400, 'VALIDATION', 'maxPriceCents must be a whole number of cents');
+  }
+  const sorters = {
+    date: (a, b) => new Date(a.startsAt) - new Date(b.startsAt) || byTitleThenId(a, b),
+    price: (a, b) => {
+      const priceA = lowestPrice(a) ?? Infinity;
+      const priceB = lowestPrice(b) ?? Infinity;
+      return (priceA === priceB ? 0 : priceA < priceB ? -1 : 1) || byTitleThenId(a, b);
+    },
+    availability: (a, b) => seatsLeft(b) - seatsLeft(a) || byTitleThenId(a, b),
+  };
+  if (!Object.hasOwn(sorters, sort)) throw apiError(400, 'VALIDATION', 'sort must be date, price or availability');
+
   const needle = q.trim().toLowerCase();
   let result = events.filter((e) => e.status === 'published');
   if (needle) result = result.filter((e) => `${e.title} ${e.venue}`.toLowerCase().includes(needle));
   if (city) result = result.filter((e) => e.city.toLowerCase() === city.toLowerCase());
-  if (Number.isFinite(maxPriceCents)) result = result.filter((e) => lowestPrice(e) <= maxPriceCents);
+  if (Number.isFinite(maxPriceCents)) {
+    result = result.filter((e) => lowestPrice(e) !== null && lowestPrice(e) <= maxPriceCents);
+  }
   if (onlyAvailable) result = result.filter((e) => seatsLeft(e) > 0);
 
-  const sorters = {
-    date: (a, b) => a.startsAt.localeCompare(b.startsAt),
-    price: (a, b) => lowestPrice(a) - lowestPrice(b),
-    availability: (a, b) => seatsLeft(b) - seatsLeft(a),
-  };
-  result = [...result].sort(sorters[sort] ?? sorters.date);
-  return { events: copy(result) };
+  result = [...result].sort(sorters[sort]);
+  return { events: copy(result.map(summarize)) };
 }
 
 // GET /api/events/:id -> the event with its tiers
@@ -58,7 +98,7 @@ export async function getEvent(id) {
   await wait();
   const event = events.find((e) => e.id === id && e.status === 'published');
   if (!event) throw apiError(404, 'NOT_FOUND', 'No such event');
-  return copy(event);
+  return copy({ ...summarize(event), organizerId: event.organizerId, tiers: event.tiers });
 }
 
 // POST /api/bookings -> a pending booking
@@ -76,14 +116,14 @@ export async function createBooking({ tierId, quantity }) {
   tier.sold += quantity;
   tier.seatsLeft -= quantity;
 
-  bookingCounter += 1;
   const booking = {
-    reference: `BK-${String(bookingCounter).padStart(4, '0')}`,
+    reference: nextReference(),
     eventId: event.id,
     tierId,
     quantity,
     amountCents: tier.priceCents * quantity,
     status: 'pending',
+    createdAt: new Date().toISOString(),
     holdUntil: new Date(Date.now() + HOLD_SECONDS * 1000).toISOString(), // the real API gets this in Build 8
   };
   bookings.set(booking.reference, booking);
@@ -93,13 +133,17 @@ export async function createBooking({ tierId, quantity }) {
 // POST /api/bookings/:reference/pay. tok_success pays, anything else is declined.
 export async function pay(reference, paymentToken) {
   await wait();
+  if (typeof paymentToken !== 'string' || paymentToken.trim() === '') {
+    throw apiError(400, 'VALIDATION', 'paymentToken is required');
+  }
   const booking = bookings.get(reference);
   if (!booking) throw apiError(404, 'NOT_FOUND', 'No such booking');
-  if (booking.status === 'paid') return copy(booking);
+  if (booking.status !== 'pending') throw apiError(409, 'INVALID_TRANSITION', `Cannot pay a ${booking.status} booking`);
   if (paymentToken !== SUCCESS_TOKEN) {
     // The booking stays pending, so the user can try again.
     throw apiError(402, 'PAYMENT_DECLINED', 'Card declined');
   }
   booking.status = 'paid';
+  booking.paidAt = new Date().toISOString();
   return copy(booking);
 }
